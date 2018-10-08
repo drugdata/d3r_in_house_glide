@@ -38,3 +38,21 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+full_week_run/1-get_challenge_data
+full_week_run/2-protein_prep
+full_week_run/3-ligand_prep
+full_week_run/4-docking
+full_week_run/5-pack_docking_results
+test_data/1-get_challenge_data
+test_data/2-protein_prep
+test_data/3-ligand_prep
+test_data/4-docking
+test_data/5-pack_docking_results
+
+# Schrodinger binary
+Schrodinger*
+
+# vagrant
+.vagrant/
+
