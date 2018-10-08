@@ -1,0 +1,62 @@
+# Copyright (c) 2015-2016, Gregory M. Kurtzer. All rights reserved.
+# 
+# "Singularity" Copyright (c) 2016, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+
+
+BootStrap: yum
+OSVersion: 7
+MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/$basearch/
+Include: yum
+
+# If you want the updates (available at the bootstrap date) to be installed
+# inside the container during the bootstrap instead of the General Availability
+# point release (7.x) then uncomment the following line
+#UpdateURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/updates/$basearch/
+
+%setup
+    cp -a /vagrant/puppet-config "$SINGULARITY_ROOTFS/tmp/."
+    cp runscript.sh "$SINGULARITY_ROOTFS/singularity"
+    chmod a+rx "$SINGULARITY_ROOTFS/singularity"
+    d3rwheelfile=`find . -maxdepth 1 -name "d3r*whl" -type f | head -n 1`
+    if [ -f "$d3rwheelfile" ] ; then
+      cp "$d3rwheelfile" "$SINGULARITY_ROOTFS/tmp/."
+    fi
+
+    whlfile=`find dist -maxdepth 1 -name "internal*whl" -type f | head -n 1`
+    if [ -f "$whlfile" ] ; then
+      cp "$whlfile" "$SINGULARITY_ROOTFS/tmp/."
+    fi
+    
+    schrodfile=`find . -maxdepth 1 -name "Schrod*.tar" -type f | head -n 1`
+    if [ -f "$schrodfile" ] ; then
+      cp "$schrodfile" "$SINGULARITY_ROOTFS/tmp/."
+    fi
+   
+%post
+    echo "Hello from inside the container"
+    yum -y install vim-minimal make git wget pciutils python2-pip
+    rpm -Uvh https://yum.puppetlabs.com/puppetlabs-release-pc1-el-7.noarch.rpm
+    yum -y install puppet-agent
+    mkdir -p /oasis /projects /data /state/partition1 /scratch /scratch1 /scratch2 /ccdbprod
+
+    echo "Running puppet apply"
+    /opt/puppetlabs/bin/puppet apply /tmp/puppet-config/open.pp
+    d3rwheelfile=`find /tmp -maxdepth 1 -name "d3r*whl" -type f | head -n 1`
+    if [ -f "$d3rwheelfile" ] ; then
+       echo "Found $d3rwheelfile  --  Replacing d3r with this version"
+       pip uninstall -y d3r
+       pip install "$d3rwheelfile"
+       rm "$d3rwheelfile"
+    fi
+
+    whlfile=`find /tmp -maxdepth 1 -name "internal*whl" -type f | head -n 1`
+    if [ -f "$whlfile" ] ; then
+       echo "Found $whlfile -- Replacing internal glide contestant with this version"
+       pip install "$whlfile"
+       rm "$whlfile"
+    fi
+%test
+    /singularity internal_glide_runner_dock.py -h
+
